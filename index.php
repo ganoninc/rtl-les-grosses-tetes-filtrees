@@ -82,7 +82,7 @@ header('Content-Type: application/xml; charset=utf-8');
 				$mustRefreshCacheFile = true;
 			} else {
 				$cacheLastModified = filemtime('./cache.txt');
-				if ($cacheLastModified > (time() + 86400)) {
+				if (($cacheLastModified + 86400) < time()) {
 					$mustRefreshCacheFile = true;
 				}
 			}
