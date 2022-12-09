@@ -1,8 +1,19 @@
 <?php
 /* 
+	Version 2.0
 	This script filters podcast items to only keep the wanted ones.
 	The result is cached for 24 hours.
 */
+
+require __DIR__ . '/vendor/autoload.php';
+
+use Laravie\Parser\Xml\Reader;
+use Laravie\Parser\Xml\Document;
+
+function xml_encode($string) {
+	return htmlentities($string);
+}
+
 $now = time();
 header('Content-Type: application/xml; charset=utf-8');
 ?>
@@ -90,18 +101,49 @@ header('Content-Type: application/xml; charset=utf-8');
 			$itemsToBeAdded = "";
 
 			if ($mustRefreshCacheFile) {
+			// if (true) {
 				$xmlContent = file_get_contents("https://feeds.audiomeans.fr/feed/d7c6111b-04c1-46bc-b74c-d941a90d37fb.xml");
-				preg_match_all('(<item>.*<title>.+INTÉ.+<\/title>.*<\/item>)', $xmlContent, $matches);
-				// var_dump($matches); 
-				for ($i = 0; $i < count($matches[0]); $i++) {
-					$itemsToBeAdded .= $matches[0][$i];
-				}
-				file_put_contents("./cache.txt", $itemsToBeAdded);
-			} else {
-				$itemsToBeAdded = file_get_contents("./cache.txt");
-			}
+				$xml = (new Reader(new Document()))->load('https://feeds.audiomeans.fr/feed/d7c6111b-04c1-46bc-b74c-d941a90d37fb.xml');
 
-			echo $itemsToBeAdded;
+				$episodes = $xml->parse([
+					'episodes' => ['uses' => 'channel.item[title,guid,guid::isPermaLink,description,content:encoded,pubDate,enclosure::url,enclosure::length,enclosure::type,link,itunes:summary,googleplay:description,itunes:author,author,itunes:explicit,itunes:subtitle,itunes:block,itunes:episodeType,itunes:duration,itunes:image::href,googleplay:image::href,itunes:keywords]'],
+				]);
+
+				// var_dump($episodes["episodes"][0]);
+
+				$filtedItemsAsXML = '';
+
+				foreach ($episodes["episodes"] as $episode) {
+					if(str_contains($episode["title"], "INTÉGRALE")){
+						$filtedItemsAsXML.= '<item>';
+						$filtedItemsAsXML.= '<title>'.$episode["title"].'</title>';
+						$filtedItemsAsXML.= '<guid isPermaLink="'.$episode["guid::isPermaLink"].'">'.$episode["guid"].'</guid>';
+						$filtedItemsAsXML.= '<description>'.$episode["description"].'</description>';
+						$filtedItemsAsXML.= '<content:encoded>'.$episode["content:encoded"].'</content:encoded>';
+						$filtedItemsAsXML.= '<pubDate>'.$episode["pubDate"].'</pubDate>';
+						$filtedItemsAsXML.= '<enclosure url="'.xml_encode($episode["enclosure::url"]).'" length="'.$episode["enclosure::length"].'" type="'.$episode["enclosure::type"].'"/>';
+						$filtedItemsAsXML.= '<link>'.$episode["link"].'</link>';
+						// TODO properties starting with itunes: or googleplay: need to be fixed someday
+						// $filtedItemsAsXML.= '<itunes:summary>'.$episode["itunes:summary"].'</itunes:summary>';
+						// $filtedItemsAsXML.= '<googleplay:description>'.$episode["googleplay:description"].'</googleplay:description>';
+						// $filtedItemsAsXML.= '<itunes:author>'.$episode["itunes:author"].'</itunes:author>';
+						$filtedItemsAsXML.= '<author>'.$episode["author"].'</author>';
+						// $filtedItemsAsXML.= '<itunes:explicit>'.$episode["itunes:explicit"].'</itunes:explicit>';
+						// $filtedItemsAsXML.= '<itunes:subtitle>'.$episode["itunes:subtitle"].'</itunes:subtitle>';
+						// $filtedItemsAsXML.= '<itunes:block>'.$episode["itunes:block"].'</itunes:block>';
+						// $filtedItemsAsXML.= '<itunes:episodeType>'.$episode["itunes:episodeType"].'</itunes:episodeType>';
+						// $filtedItemsAsXML.= '<itunes:image href="'.$episode["itunes:image::href"].'"/>';
+						// $filtedItemsAsXML.= '<googleplay:image href="'.$episode["googleplay:image::href"].'"/>';
+						// $filtedItemsAsXML.= '<itunes:keywords>'.$episode["itunes:keywords"].'</itunes:keywords>';
+						$filtedItemsAsXML.= '</item>';
+					}
+				}
+
+				file_put_contents("./cache.txt", $filtedItemsAsXML);
+			} else {
+				$filtedItemsAsXML = file_get_contents("./cache.txt");
+			}
+			echo $filtedItemsAsXML;
 		?>
 	</channel>
 </rss>

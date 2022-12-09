@@ -1,0 +1,17 @@
+{
+    "name": "romaingiovanetti/rtl-les-grosses-tetes-filtrees",
+    "autoload": {
+        "psr-4": {
+            "Romaingiovanetti\\RtlLesGrossesTetesFiltrees\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Romain Giovanetti",
+            "email": "ganoninc@gmail.com"
+        }
+    ],
+    "require": {
+        "laravie/parser": "^2.0"
+    }
+}
